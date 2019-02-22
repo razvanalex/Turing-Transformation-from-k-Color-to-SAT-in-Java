@@ -1,0 +1,126 @@
+-------------------------------------------------------------------------------
+                             Tema 3 - AA
+-------------------------------------------------------------------------------
+
+Autor: Smadu Razvan-Alexandru 325CB
+
+Fisiere incluse:
+  - ./src/formulas/*.java       - pachetul in care se afla implementarea 
+                                  formulelor propozitionale in forma CNF
+  - ./src/graph/*.java          - pachetul in care se afla implementarea
+                                  grafului neorientat
+  - ./src/mainPackage/*.java    - pachetul ce contine main() si transformarea
+  - ./doc/*                     - JavaDoc
+  - ./bin/*                     - folder in care se pun binarele .class
+  - .classpath                  - pentru deschiderea in eclipse
+  - .project                    - pentru deschiderea in eclipse
+  - build                       - copiaza fisierele in ./bin/ si elimina 
+                                  pachetele/importurile create
+  - Makefile                    - makefile pentru compilare/rulare/curatare
+  - README                      - acest fisier
+
+README
+  Cateva detalii de implementare a grafurilor si a formulelor
+    Implementarea formulelor se gaseste in pachetul formulas. O formula contine
+    mai multe clauze, fiind precedate de operatorul SI (^) la printarea in 
+    fisier. Fiecare clauza contine un array de literali care sunt separati de 
+    operatorul SAU (V). In cazul in care clauza are mai mult de un literal, se 
+    separa prin paranteze. Un literal contine un ID (ce reprezinta practic 
+    indicele din formula) si retine daca este folosit in forma directa sau 
+    negata. In forma directa, la printare se afiseaza xID, unde ID e un numar si
+    in forma negata, la printare, se afiseaza ~xID.
+  
+    Implementarea grafurilor se afla in pachetul graph. Un graf neorientat 
+    contine un array de varfuri si de muchii si numarul de varfuri. In graf, 
+    odata initializat cu numarul de varfuri, se pot introduce muchii. Un varf 
+    contie ID-ul corespunzator nodului si un vector de vecini care se 
+    construieste in timpul constructiei grafului. Fiind un graf neorientat, 
+    adaugarea unui vecin nou implica si adugarea nodului curent ca vecin la 
+    acel vecin. In graf, multimea de muchii este reprezentata si printr-un array 
+    de muchii, unde fiecare muchie contine o multime de 2 noduri (fiind graf 
+    neorientat).
+  
+  Implementarea transformarii k-Colorable la SAT
+    Algoritmul transformarii este urmatorul:
+      [Formulas] = Tranformare(G = (V, E), k) {
+          fi = formulaVida;  // formula care este returnata
+          vizitat = emptySet;
+
+          // Nodurile sunt colorate cu cel putin o culoare
+          for i = 1,|V| {
+              c = clauzaVida; 
+              for j = 1,k {
+                  l = x_{i * k + j}   // creare literal in forma directa
+                  c = c V l           // adauga literalul in clauza
+              }
+              fi = fi ^ c             // adaugare clauza in fi
+          }
+
+          // Nodurile nu pot fi colorate cu mai mult de o culoare
+          for i = 0,|V| {
+              // Generare combinari de k culori luate cate 2
+              for c1 = 0,k {
+                  for c2 = c1+1,k {
+                      c = ~x_{i * k + c1} V ~x_{i * k + c2} // o singura culoare
+                      fi = fi ^ c   // adaugare clauza in fi
+                  }
+              }
+          }
+
+          // Nodurile vecine nu pot avea aceeasi culoare cu nodul curent
+          for each v in V {
+              vizitat = vizitat U v
+              for each vecin in v.Vecini {
+                  if vecin not in vizitat {
+                      // pentru fiecare culoare
+                      for i = 0,k { 
+                          l1 = ~x_{v.ID * k + i}
+                          l2 = ~x_{vecin.ID * k + i}
+                          c = l1 V l2   // vecini de culori diferite
+                          fi = fi ^ c
+                      }
+                  }
+              }
+          }
+      }
+    
+    Pe scurt, transformarea realizeaza 3 pasi:
+        1) creeaza clauze pentru nodurile colorate cu cel putin o culoare
+            Practic se trece prin fiecare varf si se adauga literal pentru 
+            fiecare culoare. In total vor rezulta |V| clauze, fiecare clauza
+            avand k literali. Aceasta portiune ruleaza in Theta(|V| * k), care
+            evident este polinomiala. Presupun ca celelalte operatii se 
+            realizeaza in timp constant in raport cu input-ul (sau cel mult timp
+            polinomial)
+
+        2) se creeaza clauze pentru nodurile colorate cu cel mult o culoare (
+           adica un nod este colorat folosind o singura culoare) 
+            Se trece prin fiecare nod si se genereaza combinari de cate doua 
+            culori. Generarea se face in Theta(k * log k). Prin urmare, crearea
+            de clauze in acest pas se realizeaza in Theta(|V| * k * log k) care 
+            este tot de ordinul unei polinomiale (se incadreaza in 
+            O(|V| * k^2)). Clauzele pentru un nod sunt de forma 
+            ~Culoarea1 V ~Culoarea2, in cazul in care este colorat cu 2 culori,
+            0 V 0 = 0, si formula nu mai este satisfiabila.
+        
+        3) se pune conditia ca oricare 2 noduri adiacente sa nu aiba aceeasi 
+           culoare.
+            Prin urmare, se trece prin fiecare nod, se iau toti vecinii care nu 
+            au fost luati in calcul si se genereaza clauzele pentru ca cele 
+            doua noduri sa nu aiba aceleasi culori (o sa rezulta k clauze pe 
+            muchie). Aceasta secventa ruleaza in cel mult 
+            O(|V| * (|V| - 1) / 2 * k) (pentru primul nod se pot lua |V| - 1 
+            noduri; pentru nodul 2 se pot lua |V| - 2 noduri, ..., pentru nodul
+            |V| se ia 0 noduri) care poate fi incadrata in O(|V| ^ 2 * k) care
+            este o polinomiala.
+
+        In concluzie, algoritmul se incadreaza in clasa de complexitate (worst 
+        case): 
+                O(|V| * k) + O(|V| * k^2) + O(|V| ^ 2 * k) 
+        care se incadreaza in O(|V|^2 * k^2) = O((|V| * k)^2). Daca notez
+        cu n = |V| * k, dimensiunea inputului => algoritmul se incadreaza in 
+        O(n^2) care este polinomial.
+
+    Prin urmare, se demonseaza faptul ca k-colorable <=P SAT, avand o 
+    transformare ce ruleaza in timp polinomial.
+
